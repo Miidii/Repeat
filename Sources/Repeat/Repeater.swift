@@ -154,10 +154,23 @@ open class Repeater: Equatable {
 	public typealias ObserverToken = UInt64
 
 	/// Current state of the timer
-	public private(set) var state: State = .paused {
-		didSet {
-			self.onStateChanged?(self, state)
-		}
+    private var _state: State = .paused {
+        didSet {
+            self.onStateChanged?(self, state)
+        }
+    }
+
+	public var state: State {
+        get {
+            return queue.sync {
+                return _state
+            }
+        }
+        set {
+            queue.sync {
+                _state = newValue
+            }
+        }
 	}
 
 	/// Callback called to intercept state's change of the timer
@@ -185,7 +198,7 @@ open class Repeater: Equatable {
 	private var tolerance: DispatchTimeInterval
 
 	/// Dispatch queue parent of the timer
-	private var queue: DispatchQueue?
+	private var queue: DispatchQueue
 
 	/// Initialize a new timer.
 	///
@@ -200,7 +213,7 @@ open class Repeater: Equatable {
 		self.interval = interval
 		self.tolerance = tolerance
 		self.remainingIterations = mode.countIterations
-		self.queue = (queue ?? DispatchQueue(label: "com.repeat.queue"))
+		self.queue = (queue ?? DispatchQueue(label: "com.repeat.\(NSUUID().uuidString)"))
 		self.timer = configureTimer()
 		self.observe(observer)
 	}
@@ -243,7 +256,7 @@ open class Repeater: Equatable {
 	///
 	/// - Returns: dispatch timer
 	private func configureTimer() -> DispatchSourceTimer {
-		let associatedQueue = (queue ?? DispatchQueue(label: "com.repeat.\(NSUUID().uuidString)"))
+		let associatedQueue = queue
 		let timer = DispatchSource.makeTimerSource(queue: associatedQueue)
 		let repeatInterval = interval.value
 		let deadline: DispatchTime = (DispatchTime.now() + repeatInterval)
