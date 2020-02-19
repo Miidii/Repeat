@@ -154,22 +154,20 @@ open class Repeater: Equatable {
 	public typealias ObserverToken = UInt64
 
 	/// Current state of the timer
-    private var _state: State = .paused {
+    private var _state: State = .paused  {
         didSet {
-            self.onStateChanged?(self, state)
+            onStateChanged?(self, _state)
         }
     }
 
-    private var stateQueue = DispatchQueue(label: "com.repeat.state.queue")
-
 	public var state: State {
         get {
-            return stateQueue.sync {
+            return sync {
                 return _state
             }
         }
         set {
-            stateQueue.sync {
+            sync {
                 _state = newValue
             }
         }
@@ -202,6 +200,18 @@ open class Repeater: Equatable {
 	/// Dispatch queue parent of the timer
 	private var queue: DispatchQueue
 
+    private var queueKey: DispatchSpecificKey<String>
+
+    // https://gist.github.com/khanlou/2dc012e356fd372ecba845752d9a938a
+    private func sync<T>(_ execute: () -> T) -> T {
+        if DispatchQueue.getSpecific(key: queueKey) == queue.label {
+            return execute()
+        } else {
+            return queue.sync {
+                return execute()
+            }
+        }
+    }
 	/// Initialize a new timer.
 	///
 	/// - Parameters:
@@ -215,7 +225,11 @@ open class Repeater: Equatable {
 		self.interval = interval
 		self.tolerance = tolerance
 		self.remainingIterations = mode.countIterations
+
 		self.queue = (queue ?? DispatchQueue(label: "com.repeat.queue"))
+        self.queueKey = DispatchSpecificKey<String>()
+        self.queue.setSpecific(key: self.queueKey, value: self.queue.label)
+
 		self.timer = configureTimer()
 		self.observe(observer)
 	}
