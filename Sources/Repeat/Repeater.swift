@@ -160,14 +160,16 @@ open class Repeater: Equatable {
         }
     }
 
+    private var stateQueue = DispatchQueue(label: "com.repeat.state.queue")
+
 	public var state: State {
         get {
-            return queue.sync {
+            return stateQueue.sync {
                 return _state
             }
         }
         set {
-            queue.sync {
+            stateQueue.sync {
                 _state = newValue
             }
         }
@@ -213,7 +215,7 @@ open class Repeater: Equatable {
 		self.interval = interval
 		self.tolerance = tolerance
 		self.remainingIterations = mode.countIterations
-		self.queue = (queue ?? DispatchQueue(label: "com.repeat.\(NSUUID().uuidString)"))
+		self.queue = (queue ?? DispatchQueue(label: "com.repeat.queue"))
 		self.timer = configureTimer()
 		self.observe(observer)
 	}
