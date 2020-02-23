@@ -153,14 +153,14 @@ open class Repeater: Equatable {
 	/// Token assigned to the observer
 	public typealias ObserverToken = UInt64
 
-    /// Current state of the timer
+	/// Current state of the timer
     private var _state: State = .paused  {
         didSet {
             onStateChanged?(self, _state)
         }
     }
 
-    public var state: State {
+	public var state: State {
         get {
             return sync {
                 return _state
@@ -171,7 +171,7 @@ open class Repeater: Equatable {
                 _state = newValue
             }
         }
-    }
+	}
 
 	/// Callback called to intercept state's change of the timer
 	public var onStateChanged: ((_ timer: Repeater, _ state: State) -> Void)?
@@ -420,33 +420,32 @@ open class Repeater: Equatable {
 
 	/// Called when timer is fired
 	private func timeFired() {
-        sync {
-            self.state = .executing
+		self.state = .executing
 
-            if case .finite = self.mode {
-                self.remainingIterations! -= 1
-            }
+		if case .finite = self.mode {
+			self.remainingIterations! -= 1
+		}
 
-            // dispatch to observers
-            self.observers.values.forEach { $0(self) }
+		// dispatch to observers
+		self.observers.values.forEach { $0(self) }
 
-            // manage lifetime
-            switch self.mode {
-            case .once:
-                // once timer's lifetime is finished after the first fire
-                // you can reset it by calling `reset()` function.
-                self.setPause(from: .executing, to: .finished)
-            case .finite:
-                // for finite intervals we decrement the left iterations count...
-                if self.remainingIterations! == 0 {
-                    // ...if left count is zero we just pause the timer and stop
-                    self.setPause(from: .executing, to: .finished)
-                }
-            case .infinite:
-                // infinite timer does nothing special on the state machine
-                break
-            }
-        }
+		// manage lifetime
+		switch self.mode {
+		case .once:
+			// once timer's lifetime is finished after the first fire
+			// you can reset it by calling `reset()` function.
+			self.setPause(from: .executing, to: .finished)
+		case .finite:
+			// for finite intervals we decrement the left iterations count...
+			if self.remainingIterations! == 0 {
+				// ...if left count is zero we just pause the timer and stop
+				self.setPause(from: .executing, to: .finished)
+			}
+		case .infinite:
+			// infinite timer does nothing special on the state machine
+			break
+		}
+
 	}
 
 	deinit {
